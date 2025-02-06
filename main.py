@@ -5,7 +5,7 @@ import models as m
 from prettytable import PrettyTable
 import os
 
-
+load_dotenv()
 login = os.getenv("LOGIN")
 password = os.getenv("PASSWORD")
 server = os.getenv("SERVER")
