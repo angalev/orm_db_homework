@@ -2,7 +2,6 @@ import sqlalchemy
 import json
 from dotenv import load_dotenv
 import models as m
-from prettytable import PrettyTable
 import os
 
 load_dotenv()
@@ -34,23 +33,21 @@ for obj in data:
     session.add(models[obj.get("model")](id=obj.get("pk"), **obj.get("fields")))
 session.commit()
 
-def search_request(publisher_name="%", book_title="%", shop_name="%", sale_date="%"):
-    result = (session.query(m.Book.title, m.Shop.name, m.Sale.price, m.Sale.date_sale).
-    join(m.Publisher, m.Book.id_publisher == m.Publisher.id).
-    join(m.Stock, m.Book.id == m.Stock.id_book).
-    join(m.Shop, m.Shop.id == m.Stock.id_shop).
-    join(m.Sale, m.Sale.id_stock == m.Stock.id).
-    filter(m.Book.title.ilike(f'%{book_title}%'),
-           m.Publisher.name.ilike(f'%{publisher_name}%'),
-           m.Shop.name.ilike(f'%{shop_name}%'),
-           sqlalchemy.cast(m.Sale.date_sale, sqlalchemy.String()).ilike(f'%{sale_date}%')))
-    return result
+def search_request(search):
+    request_body = session.query(m.Book.title, m.Shop.name, m.Sale.price, m.Sale.date_sale).\
+    join(m.Publisher, m.Book.id_publisher == m.Publisher.id).\
+    join(m.Stock, m.Book.id == m.Stock.id_book).\
+    join(m.Shop, m.Shop.id == m.Stock.id_shop).\
+    join(m.Sale, m.Sale.id_stock == m.Stock.id)
+    if search.isdigit():
+        result = request_body.filter(m.Publisher.id == search).all()
+    else:
+        result = request_body.filter(m.Publisher.name.ilike(f'%{search}%')).all()
+    session.close()
+    for publisher_name, shop_name, price, sale_date in result:
+        print(f"{publisher_name: <40} | {shop_name: <10} | {price: <8} | {sale_date.strftime('%d-%m-%Y')}")
 
-table = PrettyTable()
-table.field_names = ['книга', 'магазин', 'стоимость покупки', 'дата покупки']
+if __name__ == "__main__":
 
-for c in search_request(book_title="at"):
-    table.add_row(c)
-    table.add_divider()
-print(table)
-session.close()
+    search_request(str(input()))
+
